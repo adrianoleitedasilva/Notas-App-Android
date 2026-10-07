@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notas.app.ui.theme.LocalNotebookColors
+import kotlin.math.roundToInt
 
 /** Distância entre as pautas. Todo texto sobre a folha usa esta altura de linha. */
 val RuleHeight = 32.sp
@@ -31,16 +32,24 @@ val MarginWidth = 64.dp
 private val TextStart = 14.dp
 private val TextEnd = 20.dp
 
-/** Altura de [lines] pautas em dp (acompanha o tamanho de fonte do sistema). */
+/**
+ * Altura da pauta em pixels inteiros. Arredondar evita que texto e linhas se
+ * desencontrem aos poucos quando a escala da fonte dá um valor quebrado.
+ */
 @Composable
-fun ruleDp(lines: Int = 1): Dp = with(LocalDensity.current) { RuleHeight.toDp() } * lines
+fun rulePx(): Int = with(LocalDensity.current) { RuleHeight.toPx().roundToInt() }
+
+/** Altura de [lines] pautas em dp (acompanha o tamanho de fonte escolhido). */
+@Composable
+fun ruleDp(lines: Int = 1): Dp = with(LocalDensity.current) { (rulePx() * lines).toDp() }
 
 /** Recuo do texto: começa logo depois da margem. */
 fun Modifier.afterMargin() = padding(start = MarginWidth + TextStart, end = TextEnd)
 
 /** Encaixa o texto na pauta, com a base das letras sobre a linha. */
+@Composable
 fun TextStyle.onRule(): TextStyle = copy(
-    lineHeight = RuleHeight,
+    lineHeight = with(LocalDensity.current) { rulePx().toSp() },
     lineHeightStyle = LineHeightStyle(
         alignment = LineHeightStyle.Alignment.Bottom,
         trim = LineHeightStyle.Trim.None,
@@ -53,7 +62,7 @@ fun Modifier.paperRules(scrollOffset: () -> Int = { 0 }): Modifier {
     val rule = LocalNotebookColors.current.rule
     val paper = MaterialTheme.colorScheme.background
     val density = LocalDensity.current
-    val rulePx = with(density) { RuleHeight.toPx() }
+    val rulePx = rulePx().toFloat()
     val stroke = with(density) { 1.dp.toPx() }
 
     return drawBehind {

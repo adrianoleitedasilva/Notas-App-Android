@@ -37,6 +37,7 @@ fun NotesListScreen(
     onQueryChange: (String) -> Unit,
     onOpen: (Long) -> Unit,
     onCreate: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
@@ -53,6 +54,16 @@ fun NotesListScreen(
                         style = type.headlineSmall.onRule(),
                         fontWeight = FontWeight.Bold,
                         color = colors.onBackground,
+                    )
+                    Text(
+                        "opções",
+                        style = type.labelMedium.onRule(),
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onOpenSettings)
+                            .padding(horizontal = 8.dp),
                     )
                 }
                 NotebookLine {

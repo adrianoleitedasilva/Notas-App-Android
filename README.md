@@ -22,7 +22,8 @@ O **Notas** é um bloco de anotações simples: abra, escreva e pronto. A interf
 - **Salvamento automático**: salva enquanto você digita e ao sair da nota. Notas vazias são descartadas.
 - **Busca**: filtra pelo título e pelo conteúdo enquanto você digita.
 - **Exclusão em dois toques**: `excluir` vira `confirmar`, para evitar apagar sem querer.
-- **Tema claro e escuro**: papel creme no modo claro, caderno escuro no modo escuro. Segue o tema do sistema.
+- **Tema claro e escuro**: papel creme com pautas azuis no claro, caderno de capa preta no escuro. Escolha em *opções*: seguir o sistema, sempre claro ou sempre escuro.
+- **Tamanho da fonte**: pequena (85%), normal, grande (115%) ou enorme (130%). As pautas acompanham, e o texto continua em cima das linhas.
 - **Offline**: nenhuma permissão de internet.
 
 ## Stack
@@ -32,7 +33,7 @@ O **Notas** é um bloco de anotações simples: abra, escreva e pronto. A interf
 | Linguagem | Kotlin |
 | UI | Jetpack Compose + Material 3 |
 | Arquitetura | `ViewModel` + `StateFlow` |
-| Armazenamento | Arquivo JSON no armazenamento interno (`filesDir/notes.json`) |
+| Armazenamento | Notas em JSON no armazenamento interno (`filesDir/notes.json`); opções em `SharedPreferences` |
 | Fonte | JetBrains Mono (Regular, Medium, Bold), embutida em `res/font` |
 | Android | minSdk 26 (Android 8.0), targetSdk 37 |
 
@@ -61,15 +62,17 @@ export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
 ```
 app/src/main/
 ├── java/com/notas/app/
-│   ├── MainActivity.kt          # troca entre lista e editor
-│   ├── NotesViewModel.kt        # busca, salvamento com atraso, exclusão
+│   ├── MainActivity.kt          # navegação entre lista, editor e opções
+│   ├── NotesViewModel.kt        # busca, salvamento com atraso, exclusão, opções
 │   ├── data/
 │   │   ├── Note.kt              # modelo da nota
-│   │   └── NoteRepository.kt    # leitura e escrita do JSON
+│   │   ├── NoteRepository.kt    # leitura e escrita do JSON
+│   │   └── SettingsRepository.kt # tema e tamanho da fonte
 │   └── ui/
 │       ├── NotebookPaper.kt     # pautas, margem e alinhamento do texto
 │       ├── NotesListScreen.kt   # tela de lista
 │       ├── NoteEditorScreen.kt  # tela de edição
+│       ├── SettingsScreen.kt    # tela de opções
 │       ├── DateFormat.kt        # datas em pt-BR
 │       └── theme/               # cores, fonte e tema
 └── res/
@@ -86,7 +89,7 @@ Tudo gira em torno de uma constante em `NotebookPaper.kt`:
 val RuleHeight = 32.sp   // distância entre as pautas
 ```
 
-As pautas são desenhadas a cada `RuleHeight`, e todo texto sobre a folha usa `lineHeight = RuleHeight` (via `TextStyle.onRule()`), com as letras alinhadas na parte de baixo da linha. Por isso o texto sempre cai em cima de uma pauta. Como o valor está em `sp`, o espaçamento acompanha o tamanho de fonte escolhido no sistema.
+As pautas são desenhadas a cada `RuleHeight`, e todo texto sobre a folha usa `lineHeight = RuleHeight` (via `TextStyle.onRule()`), com as letras alinhadas na parte de baixo da linha. Por isso o texto sempre cai em cima de uma pauta. Como o valor está em `sp`, o espaçamento acompanha o tamanho de fonte do sistema e o escolhido em *opções*. O tema aplica essa escala multiplicando o `fontScale`. A altura da pauta é arredondada para pixels inteiros (`rulePx()`), para que texto e linhas não se desencontrem em notas longas.
 
 Para mudar as cores do papel, das pautas ou da margem, edite `ui/theme/Color.kt`.
 

@@ -9,6 +9,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 
 /** Cores próprias da folha de caderno (pautas e margem). */
 @Immutable
@@ -40,13 +42,22 @@ private val DarkColorScheme = darkColorScheme(
     error = Danger,
 )
 
+/**
+ * [fontScale] multiplica o tamanho de fonte do sistema. Como as pautas usam `sp`,
+ * a distância entre elas cresce junto e o texto continua alinhado às linhas.
+ */
 @Composable
 fun NotasTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    fontScale: Float = 1f,
     content: @Composable () -> Unit
 ) {
     val notebook = if (darkTheme) NotebookColors(RuleDark, MarginDark) else NotebookColors(RuleLight, MarginLight)
-    CompositionLocalProvider(LocalNotebookColors provides notebook) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(
+        LocalNotebookColors provides notebook,
+        LocalDensity provides Density(density.density, density.fontScale * fontScale),
+    ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
             typography = Typography,

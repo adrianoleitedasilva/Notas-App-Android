@@ -4,7 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.notas.app.data.Note
+import com.notas.app.data.FontSize
 import com.notas.app.data.NoteRepository
+import com.notas.app.data.Settings
+import com.notas.app.data.SettingsRepository
+import com.notas.app.data.ThemeMode
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +23,9 @@ import java.io.File
 class NotesViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repository = NoteRepository(File(app.filesDir, "notes.json"))
+    private val settingsRepository = SettingsRepository(app)
+
+    val settings: StateFlow<Settings> = settingsRepository.settings
 
     val query = MutableStateFlow("")
 
@@ -37,6 +44,10 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun get(id: Long): Note? = repository.get(id)
+
+    fun setTheme(theme: ThemeMode) = settingsRepository.setTheme(theme)
+
+    fun setFontSize(size: FontSize) = settingsRepository.setFontSize(size)
 
     /** Salva com um pequeno atraso para não escrever no disco a cada tecla. */
     fun save(id: Long, title: String, body: String) {
