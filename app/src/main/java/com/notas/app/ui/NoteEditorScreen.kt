@@ -1,21 +1,22 @@
 package com.notas.app.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,11 +52,13 @@ fun NoteEditorScreen(
     onDelete: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val type = MaterialTheme.typography
     var title by rememberSaveable(noteId) { mutableStateOf(initial?.title.orEmpty()) }
     var body by rememberSaveable(noteId) { mutableStateOf(initial?.body.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }
-    val bodyFocus = remember { FocusRequester() }
     val titleFocus = remember { FocusRequester() }
+    val bodyFocus = remember { FocusRequester() }
+    val scroll = rememberScrollState()
 
     BackHandler { onClose(title, body) }
 
@@ -70,66 +74,71 @@ fun NoteEditorScreen(
         }
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(colors.background)
-            .systemBarsPadding()
-            .imePadding()
-    ) {
-        // Barra superior
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextAction("←", colors.onBackground) { onClose(title, body) }
-            Spacer(Modifier.weight(1f))
-            Text(
-                formatDate(initial?.updatedAt ?: System.currentTimeMillis(), long = true),
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.onSurfaceVariant,
-            )
-            Spacer(Modifier.weight(1f))
-            TextAction(
-                if (confirmDelete) "confirmar" else "excluir",
-                if (confirmDelete) colors.error else colors.onSurfaceVariant,
-            ) {
-                if (confirmDelete) onDelete() else confirmDelete = true
-            }
-        }
-
+    Box(Modifier.fillMaxSize().paperMargin()) {
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .systemBarsPadding()
+                .imePadding()
         ) {
-            Spacer(Modifier.height(16.dp))
-            PlainField(
-                value = title,
-                onValueChange = { title = it; onChange(it, body) },
-                placeholder = "título",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Next,
-                ),
-                modifier = Modifier.focusRequester(titleFocus),
-            )
-            Spacer(Modifier.height(20.dp))
-            PlainField(
-                value = body,
-                onValueChange = { body = it; onChange(title, it) },
-                placeholder = "escreva algo…",
-                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = MaterialTheme.typography.bodyLarge.fontSize * 1.7),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                modifier = Modifier
-                    .focusRequester(bodyFocus)
-                    .padding(bottom = 48.dp),
-            )
+            // Barra superior: voltar na margem, data e excluir na linha
+            NotebookLine(
+                modifier = Modifier.paperRules().height(ruleDp(2)),
+                margin = { TextAction("←", colors.onBackground, style = type.titleLarge) { onClose(title, body) } },
+            ) {
+                Text(
+                    formatDate(initial?.updatedAt ?: System.currentTimeMillis(), long = true),
+                    style = type.labelSmall.onRule(),
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.BottomStart),
+                )
+                TextAction(
+                    if (confirmDelete) "confirmar" else "excluir",
+                    if (confirmDelete) colors.error else colors.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.BottomEnd),
+                ) {
+                    if (confirmDelete) onDelete() else confirmDelete = true
+                }
+            }
+
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .paperRules { scroll.value }
+                    // Tocar em qualquer pauta vazia leva o cursor para o texto
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                        bodyFocus.requestFocus()
+                    }
+            ) {
+                Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+                    PlainField(
+                        value = title,
+                        onValueChange = { title = it; onChange(it, body) },
+                        placeholder = "título",
+                        style = type.headlineSmall.copy(fontWeight = FontWeight.Bold).onRule(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Next,
+                        ),
+                        keyboardActions = KeyboardActions(onNext = { bodyFocus.requestFocus() }),
+                        modifier = Modifier.afterMargin().height(ruleDp()).focusRequester(titleFocus),
+                    )
+                    Spacer(Modifier.height(ruleDp()))
+                    PlainField(
+                        value = body,
+                        onValueChange = { body = it; onChange(title, it) },
+                        placeholder = "escreva algo…",
+                        style = type.bodyLarge.onRule(),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                        modifier = Modifier
+                            .afterMargin()
+                            .heightIn(min = ruleDp(10))
+                            .focusRequester(bodyFocus),
+                    )
+                    Spacer(Modifier.height(ruleDp(3)))
+                }
+            }
         }
     }
 }
@@ -143,6 +152,7 @@ private fun PlainField(
     modifier: Modifier = Modifier,
     singleLine: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
     val colors = MaterialTheme.colorScheme
     Box(modifier.fillMaxWidth()) {
@@ -156,20 +166,27 @@ private fun PlainField(
             cursorBrush = SolidColor(colors.onBackground),
             singleLine = singleLine,
             keyboardOptions = keyboardOptions,
-            modifier = Modifier.fillMaxWidth(),
+            keyboardActions = keyboardActions,
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
 
 @Composable
-private fun TextAction(label: String, color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+private fun TextAction(
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.labelLarge,
+    onClick: () -> Unit,
+) {
     Text(
         label,
-        style = MaterialTheme.typography.labelLarge,
+        style = style.onRule(),
         color = color,
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp),
     )
 }

@@ -2,30 +2,26 @@ package com.notas.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,80 +39,80 @@ fun NotesListScreen(
     onCreate: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val type = MaterialTheme.typography
+    val listState = rememberLazyListState()
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(colors.background)
-            .systemBarsPadding()
-    ) {
-        Column(Modifier.fillMaxSize()) {
-            // Cabeçalho
-            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 8.dp)) {
-                Text(
-                    "notas",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.onBackground,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    countLabel(totalCount),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.onSurfaceVariant,
-                )
-            }
-
-            // Busca
-            Row(
-                Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("/", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
-                Spacer(Modifier.width(12.dp))
-                Box(Modifier.weight(1f)) {
+    Box(Modifier.fillMaxSize().paperMargin()) {
+        Column(Modifier.fillMaxSize().systemBarsPadding()) {
+            // Cabeçalho, busca: cada linha ocupa uma pauta
+            Column(Modifier.paperRules()) {
+                NotebookLine()
+                NotebookLine {
+                    Text(
+                        "notas",
+                        style = type.headlineSmall.onRule(),
+                        fontWeight = FontWeight.Bold,
+                        color = colors.onBackground,
+                    )
+                }
+                NotebookLine {
+                    Text(countLabel(totalCount), style = type.labelMedium.onRule(), color = colors.onSurfaceVariant)
+                }
+                NotebookLine(
+                    margin = { Text("/", style = type.bodyMedium.onRule(), color = colors.onSurfaceVariant) },
+                ) {
                     if (query.isEmpty()) {
-                        Text("buscar", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                        Text("buscar", style = type.bodyMedium.onRule(), color = colors.onSurfaceVariant)
                     }
                     BasicTextField(
                         value = query,
                         onValueChange = onQueryChange,
                         singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.onBackground),
+                        textStyle = type.bodyMedium.onRule().copy(color = colors.onBackground),
                         cursorBrush = SolidColor(colors.onBackground),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(end = 28.dp),
                     )
+                    if (query.isNotEmpty()) {
+                        Text(
+                            "×",
+                            style = type.bodyLarge.onRule(),
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { onQueryChange("") }
+                                .padding(horizontal = 6.dp),
+                        )
+                    }
                 }
-                if (query.isNotEmpty()) {
-                    Text(
-                        "×",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.onSurfaceVariant,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable { onQueryChange("") }
-                            .padding(horizontal = 6.dp),
-                    )
-                }
+                NotebookLine()
             }
-            HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = colors.outlineVariant)
 
-            if (notes.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        if (query.isEmpty()) "nenhuma nota ainda" else "nada encontrado",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onSurfaceVariant,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 120.dp),
-                ) {
-                    items(notes, key = { it.id }) { note ->
-                        NoteRow(note, onClick = { onOpen(note.id) })
-                        HorizontalDivider(Modifier.padding(horizontal = 24.dp), color = colors.outlineVariant)
+            // Notas: cada uma ocupa duas pautas (título + prévia)
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .paperRules { listState.firstVisibleItemScrollOffset }
+            ) {
+                if (notes.isEmpty()) {
+                    NotebookLine {
+                        Text(
+                            if (query.isEmpty()) "folha em branco. toque em + para escrever" else "nada encontrado",
+                            style = type.bodyMedium.onRule(),
+                            color = colors.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        Modifier.fillMaxSize(),
+                        state = listState,
+                        contentPadding = PaddingValues(bottom = ruleDp(4)),
+                    ) {
+                        items(notes, key = { it.id }) { note ->
+                            NoteRow(note, onClick = { onOpen(note.id) })
+                        }
                     }
                 }
             }
@@ -126,14 +122,16 @@ fun NotesListScreen(
         Box(
             Modifier
                 .align(Alignment.BottomEnd)
+                .systemBarsPadding()
                 .padding(24.dp)
                 .size(56.dp)
+                .shadow(6.dp, RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
                 .background(colors.primary)
                 .clickable(onClick = onCreate),
             contentAlignment = Alignment.Center,
         ) {
-            Text("+", color = colors.onPrimary, fontSize = 26.sp, style = MaterialTheme.typography.titleLarge)
+            Text("+", color = colors.onPrimary, fontSize = 26.sp, style = type.titleLarge)
         }
     }
 }
@@ -141,51 +139,40 @@ fun NotesListScreen(
 @Composable
 private fun NoteRow(note: Note, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    val title = note.title.ifBlank { note.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty() }
-    val preview = if (note.title.isBlank()) {
-        note.body.lineSequence().filter { it.isNotBlank() }.drop(1).joinToString(" ")
-    } else {
-        note.body.lineSequence().filter { it.isNotBlank() }.joinToString(" ")
-    }
+    val type = MaterialTheme.typography
+    val lines = note.body.lineSequence().filter { it.isNotBlank() }.map { it.trim() }.toList()
+    val title = note.title.ifBlank { lines.firstOrNull().orEmpty() }
+    val preview = (if (note.title.isBlank()) lines.drop(1) else lines).joinToString("  ")
 
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 18.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Column(Modifier.weight(1f)) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        NotebookLine(
+            margin = {
+                Text(formatDate(note.updatedAt), style = type.labelSmall.onRule(), color = colors.onSurfaceVariant)
+            },
+        ) {
             Text(
                 title.ifBlank { "sem título" },
-                style = MaterialTheme.typography.bodyLarge,
+                style = type.bodyLarge.onRule(),
                 fontWeight = FontWeight.Medium,
                 color = colors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (preview.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    preview,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
-        Text(
-            formatDate(note.updatedAt),
-            style = MaterialTheme.typography.labelSmall,
-            color = colors.onSurfaceVariant,
-            modifier = Modifier.padding(top = 3.dp),
-        )
+        NotebookLine {
+            Text(
+                preview,
+                style = type.bodySmall.onRule(),
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
 private fun countLabel(count: Int) = when (count) {
-    0 -> "vazio"
+    0 -> "nenhuma nota"
     1 -> "1 nota"
     else -> "$count notas"
 }
