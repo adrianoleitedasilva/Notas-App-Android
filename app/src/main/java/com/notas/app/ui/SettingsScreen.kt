@@ -29,6 +29,7 @@ fun SettingsScreen(
     settings: Settings,
     onThemeChange: (ThemeMode) -> Unit,
     onFontSizeChange: (FontSize) -> Unit,
+    onRemindersChange: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -91,6 +92,24 @@ fun SettingsScreen(
                         "o rato roeu a roupa do rei de roma",
                         style = type.bodyLarge.onRule(),
                         color = colors.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                NotebookLine()
+
+                SectionTitle("lembretes")
+                OptionLine(
+                    label = "avisar datas",
+                    hint = "véspera e no dia",
+                    selected = settings.reminders,
+                    onClick = { onRemindersChange(!settings.reminders) },
+                )
+                NotebookLine {
+                    Text(
+                        "escreva 15/10 ou 15 de outubro numa nota",
+                        style = MaterialTheme.typography.bodySmall.onRule(),
+                        color = colors.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

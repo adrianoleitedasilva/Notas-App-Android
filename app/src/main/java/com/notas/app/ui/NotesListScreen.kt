@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,6 +19,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +30,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.notas.app.data.Note
+import com.notas.app.reminders.ReminderPlanner
+import java.time.LocalDate
 
 @Composable
 fun NotesListScreen(
@@ -99,7 +103,7 @@ fun NotesListScreen(
                 NotebookLine()
             }
 
-            // Notas: cada uma ocupa duas pautas (título + prévia)
+            // Notas: uma pauta para cada título
             Box(
                 Modifier
                     .fillMaxSize()
@@ -151,33 +155,35 @@ fun NotesListScreen(
 private fun NoteRow(note: Note, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
-    val lines = note.body.lineSequence().filter { it.isNotBlank() }.map { it.trim() }.toList()
-    val title = note.title.ifBlank { lines.firstOrNull().orEmpty() }
-    val preview = (if (note.title.isBlank()) lines.drop(1) else lines).joinToString("  ")
+    // Sem título: usa a primeira linha do texto
+    val title = note.title.ifBlank { note.body.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty() }
+    val upcoming = remember(note) { ReminderPlanner.nextEvent(note, LocalDate.now()) }
 
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        NotebookLine(
-            margin = {
-                Text(formatDate(note.updatedAt), style = type.labelSmall.onRule(), color = colors.onSurfaceVariant)
-            },
-        ) {
+    NotebookLine(
+        modifier = Modifier.clickable(onClick = onClick),
+        margin = {
+            Text(formatDate(note.updatedAt), style = type.labelSmall.onRule(), color = colors.onSurfaceVariant)
+        },
+    ) {
+        Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 title.ifBlank { "sem título" },
-                style = type.bodyLarge.onRule(),
+                style = type.bodyLarge.copy(fontSize = type.bodyLarge.fontSize * 1.2f).onRule(),
                 fontWeight = FontWeight.Medium,
                 color = colors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
-        }
-        NotebookLine {
-            Text(
-                preview,
-                style = type.bodySmall.onRule(),
-                color = colors.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // Data próxima reconhecida na nota (vai gerar lembrete)
+            if (upcoming != null) {
+                Text(
+                    "  → " + formatDay(upcoming.date),
+                    style = type.labelSmall.onRule(),
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

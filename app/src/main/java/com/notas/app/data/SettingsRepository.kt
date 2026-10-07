@@ -20,6 +20,7 @@ enum class FontSize(val scale: Float) {
 data class Settings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val fontSize: FontSize = FontSize.NORMAL,
+    val reminders: Boolean = true,
 )
 
 /** Preferências do usuário, guardadas em SharedPreferences. */
@@ -31,6 +32,7 @@ class SettingsRepository(private val context: Context) {
         Settings(
             theme = enumOrDefault(prefs.getString(KEY_THEME, null), ThemeMode.SYSTEM),
             fontSize = enumOrDefault(prefs.getString(KEY_FONT_SIZE, null), FontSize.NORMAL),
+            reminders = prefs.getBoolean(KEY_REMINDERS, true),
         )
     )
     val settings: StateFlow<Settings> = _settings.asStateFlow()
@@ -44,6 +46,11 @@ class SettingsRepository(private val context: Context) {
     fun setFontSize(size: FontSize) {
         prefs.edit().putString(KEY_FONT_SIZE, size.name).apply()
         _settings.update { it.copy(fontSize = size) }
+    }
+
+    fun setReminders(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_REMINDERS, enabled).apply()
+        _settings.update { it.copy(reminders = enabled) }
     }
 
     /**
@@ -66,5 +73,6 @@ class SettingsRepository(private val context: Context) {
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_FONT_SIZE = "font_size"
+        const val KEY_REMINDERS = "reminders"
     }
 }

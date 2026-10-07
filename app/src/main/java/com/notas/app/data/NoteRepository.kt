@@ -18,14 +18,20 @@ class NoteRepository(private val file: File) {
     private val _notes = MutableStateFlow<List<Note>>(emptyList())
     val notes: StateFlow<List<Note>> = _notes.asStateFlow()
 
+    private val _loaded = MutableStateFlow(false)
+    /** Fica true depois que o arquivo foi lido; antes disso a lista vazia não é real. */
+    val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
+
     private val writeLock = Mutex()
 
     suspend fun load() = withContext(Dispatchers.IO) {
-        if (!file.exists()) return@withContext
-        val array = runCatching { JSONArray(file.readText()) }.getOrNull() ?: return@withContext
-        _notes.value = (0 until array.length())
-            .map { array.getJSONObject(it).toNote() }
-            .sortedByDescending { it.updatedAt }
+        val array = if (file.exists()) runCatching { JSONArray(file.readText()) }.getOrNull() else null
+        if (array != null) {
+            _notes.value = (0 until array.length())
+                .map { array.getJSONObject(it).toNote() }
+                .sortedByDescending { it.updatedAt }
+        }
+        _loaded.value = true
     }
 
     fun get(id: Long): Note? = _notes.value.firstOrNull { it.id == id }
@@ -50,6 +56,10 @@ class NoteRepository(private val file: File) {
             tmp.writeText(array.toString())
             tmp.renameTo(file)
         }
+    }
+
+    companion object {
+        const val FILE_NAME = "notes.json"
     }
 
     private fun Note.toJson() = JSONObject()
